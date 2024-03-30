@@ -8,6 +8,7 @@ import json
 import os
 import random
 import time
+import yaml
 
 import shortuuid
 import torch
@@ -17,9 +18,11 @@ from fastchat.llm_judge.common import load_questions, temperature_config
 from fastchat.model import load_model, get_conversation_template
 from fastchat.utils import str_to_torch_dtype
 
+from utils import make_stopping_criteria, wrap_dynamic_forward
 
 def run_eval(
     model_path,
+    cfg_path,
     model_id,
     question_file,
     question_begin,
@@ -54,6 +57,7 @@ def run_eval(
         ans_handles.append(
             get_answers_func(
                 model_path,
+                cfg_path,
                 model_id,
                 questions[i : i + chunk_size],
                 answer_file,
@@ -73,6 +77,7 @@ def run_eval(
 @torch.inference_mode()
 def get_model_answers(
     model_path,
+    cfg_path,
     model_id,
     questions,
     answer_file,
@@ -94,7 +99,17 @@ def get_model_answers(
         cpu_offloading=False,
         debug=False,
     )
+    stopping_criteria = make_stopping_criteria(tokenizer)
+    
+    with open(cfg_path, 'r') as f:
+        cfg = yaml.safe_load(f)
 
+    print("wrapping dynamic forward for model...")
+    wrap_dynamic_forward(model)
+    model.wiring_cfg = {"type": "loop", **cfg, "verbose_count": 1}
+    print(f"wiring cfg: {model.wiring_cfg}")
+    print("...done")
+    
     for question in tqdm(questions):
         if question["category"] in temperature_config:
             temperature = temperature_config[question["category"]]
@@ -125,6 +140,8 @@ def get_model_answers(
                         do_sample=do_sample,
                         temperature=temperature,
                         max_new_tokens=max_new_token,
+                        stopping_criteria=stopping_criteria,
+                        use_cache=False,
                     )
                     if model.config.is_encoder_decoder:
                         output_ids = output_ids[0]
@@ -213,6 +230,12 @@ if __name__ == "__main__":
         help="The path to the weights. This can be a local folder or a Hugging Face repo ID.",
     )
     parser.add_argument(
+        "--cfg-path",
+        type=str,
+        required=True,
+        help="The path to the looped config.",
+    )
+    parser.add_argument(
         "--model-id", type=str, required=True, help="A custom name for the model."
     )
     parser.add_argument(
@@ -287,6 +310,7 @@ if __name__ == "__main__":
 
     run_eval(
         model_path=args.model_path,
+        cfg_path=args.cfg_path,
         model_id=args.model_id,
         question_file=question_file,
         question_begin=args.question_begin,

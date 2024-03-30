@@ -2306,6 +2306,14 @@ class CllmAdapter(BaseModelAdapter):
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("cllm")
 
+class IBMGenericAdapter(BaseModelAdapter):
+    def match(self, model_path: str):
+        status = "ibm-generic" in model_path.lower() or 'merlinite' in model_path.lower()
+        print(f"Matching {model_path} with IBM Generic: {status=}")
+        return status
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("ibm-generic")
 
 # Note: the registration order matters.
 # The one registered earlier has a higher matching priority.
