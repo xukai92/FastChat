@@ -414,6 +414,7 @@ def chat_completion_openai(model, conv, temperature, max_tokens, api_dict=None):
             messages = conv.to_openai_api_messages()
             response = openai.ChatCompletion.create(
                 model=model,
+                #model="gpt-4-turbo",
                 messages=messages,
                 n=1,
                 temperature=temperature,
