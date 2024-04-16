@@ -1,7 +1,5 @@
 cuda=$1
 
-echo $cuda
-
 for iter in {0..3}
     do
     suffix="rank=$RANK=cuda=$cuda=iter=$iter"
