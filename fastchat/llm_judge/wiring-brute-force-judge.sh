@@ -15,5 +15,5 @@ for cuda in {0..7}
         fi
     done
 done
-cp data/mt_bench/model_judgement/gpt-4-single.jsonl \
-    /xuk/wiring/data/model_judgement/gpt-4-single-rank=$RANK.jsonl
+cp data/mt_bench/model_judgment/gpt-4-single.jsonl \
+    /xuk/wiring/data/model_judgment/gpt-4-single-rank=$RANK.jsonl
