@@ -1821,6 +1821,18 @@ register_conv_template(
 
 register_conv_template(
     Conversation(
+        name="ibm-old",
+        system_template="{system_message}",
+        system_message="",
+        roles=("<|user|>", "<|assistant|>"),
+        sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
+        sep="\n",
+        stop_str="<|end|>",
+    )
+)
+
+register_conv_template(
+    Conversation(
         name="granite-chat",
         system_template="<|system|>\n{system_message}",
         system_message="""You are Granite Chat, an AI language model developed by IBM. You are a cautious assistant. You carefully follow instructions. You are helpful and harmless and you follow ethical guidelines and promote positive behavior.""",

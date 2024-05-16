@@ -2427,7 +2427,7 @@ class GraniteAdapter(BaseModelAdapter):
     """The model adapter for instructlab/granite-7b-lab"""
 
     def match(self, model_path: str):
-        return "granite" in model_path.lower()
+        return "granite" in model_path.lower() or "oldnite" in model_path.lower()
 
     def load_model(self, model_path: str, from_pretrained_kwargs: dict):
         import ibm_models
@@ -2435,6 +2435,17 @@ class GraniteAdapter(BaseModelAdapter):
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("ibm-generic")
+
+# class OldniteAdapter(BaseModelAdapter):
+#     def match(self, model_path: str):
+#         return "oldnite" in model_path.lower() or "granite-old" in model_path.lower()
+
+#     def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+#         import ibm_models
+#         return super().load_model(model_path, from_pretrained_kwargs)
+
+#     def get_default_conv_template(self, model_path: str) -> Conversation:
+#         return get_conv_template("ibm-old")
 
 class LabradorAdapter(BaseModelAdapter):
     """The model adapter for ibm/labradorite-13b"""
@@ -2551,6 +2562,7 @@ register_model_adapter(SmaugChatAdapter)
 register_model_adapter(LabradoriteAdapter)
 register_model_adapter(MerliniteAdapter)
 register_model_adapter(GraniteAdapter)
+# register_model_adapter(OldniteAdapter)
 register_model_adapter(LabradorAdapter)
 
 # After all adapters, try the default base adapter.

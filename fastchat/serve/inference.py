@@ -10,6 +10,7 @@ from typing import Iterable, Optional, Dict
 import warnings
 
 import psutil
+from threading import Thread
 import torch
 from transformers import (
     AutoTokenizer,
@@ -20,6 +21,7 @@ from transformers import (
     AutoModelForSeq2SeqLM,
     T5Tokenizer,
     AutoConfig,
+    TextIteratorStreamer,
 )
 from transformers.generation.logits_process import (
     LogitsProcessorList,
@@ -363,6 +365,8 @@ def generate_stream(
     len_prompt = len(prompt)
     temperature = float(params.get("temperature", 1.0))
     repetition_penalty = float(params.get("repetition_penalty", 1.0))
+    if params["model"] == "granite-old":
+        repetition_penalty = 1.2
     top_p = float(params.get("top_p", 1.0))
     top_k = int(params.get("top_k", -1))  # -1 means disable
     max_new_tokens = int(params.get("max_new_tokens", 256))
@@ -375,6 +379,8 @@ def generate_stream(
     print(f"{prompt=}")
 
     stop_word_lst = ['<|endoftext|>']
+    if params["model"] == "granite-old":
+        stop_word_lst.append('<|end|>')
     if stop_str:
         stop_word_lst.append(stop_str)
     stopping_criteria = make_stopping_criteria(
@@ -397,40 +403,79 @@ def generate_stream(
     input_ids = input_ids[-max_src_len:]
     input_echo_len = len(input_ids)
 
-    output_ids = model.generate(
-        torch.as_tensor([input_ids], device=device),
+    streamer = TextIteratorStreamer(tokenizer)
+    generation_kwargs = dict(
+        input_ids=torch.as_tensor([input_ids], device=device),
         do_sample=do_sample,
         temperature=temperature,
         max_new_tokens=max_new_tokens,
         repetition_penalty=repetition_penalty,
         stopping_criteria=stopping_criteria,
-    )[0]
-    if model.config.is_encoder_decoder:
-        output_ids = output_ids
-    else:
-        output_ids = output_ids[len(input_ids):]
-
-    output = tokenizer.decode(
-        output_ids,
-        skip_special_tokens=True,
-        spaces_between_special_tokens=False,
-        clean_up_tokenization_spaces=True,
+        streamer=streamer, 
     )
-    print(f"{output=}")
+    thread = Thread(target=model.generate, kwargs=generation_kwargs)
+    thread.start()
+    output = ""
+    to_stop = False
+    for new_text in streamer:
+        print(f"{new_text=}")
+        output += new_text
+        if to_stop:
+            break
+        output = output.replace("prompt", "")
+        if "<|endoftext|>" in new_text or "<|end|>" in new_text: 
+            to_stop = True
+            output = output.replace("<|endoftext|>", "")
+            output = output.replace("<|end|>", "")
+        yield {
+            "text": output,
+            "logprobs": None,
+            "usage": {
+                "prompt_tokens": None,
+                "completion_tokens": None,
+                "total_tokens": None,
+            },
+            "finish_reason": None,
+        }
 
-    ret_logprobs = None
-    i = len(output_ids)
-    finish_reason = "stop"
     yield {
         "text": output,
-        "logprobs": ret_logprobs,
+        "logprobs": None,
         "usage": {
-            "prompt_tokens": input_echo_len,
-            "completion_tokens": i,
-            "total_tokens": input_echo_len + i,
+            "prompt_tokens": None,
+            "completion_tokens": None,
+            "total_tokens": None,
         },
-        "finish_reason": finish_reason,
+        "finish_reason": "stop",
     }
+    print(f"{output=}")
+
+    # if model.config.is_encoder_decoder:
+    #     output_ids = output_ids
+    # else:
+    #     output_ids = output_ids[len(input_ids):]
+
+    # output = tokenizer.decode(
+    #     output_ids,
+    #     skip_special_tokens=True,
+    #     spaces_between_special_tokens=False,
+    #     clean_up_tokenization_spaces=True,
+    # )
+    # print(f"{output=}")
+
+    # ret_logprobs = None
+    # i = len(output_ids)
+    # finish_reason = "stop"
+    # yield {
+    #     "text": output,
+    #     "logprobs": ret_logprobs,
+    #     "usage": {
+    #         "prompt_tokens": input_echo_len,
+    #         "completion_tokens": i,
+    #         "total_tokens": input_echo_len + i,
+    #     },
+    #     "finish_reason": finish_reason,
+    # }
 
     # Clean
     gc.collect()
