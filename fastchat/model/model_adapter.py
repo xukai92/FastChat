@@ -91,18 +91,21 @@ class BaseModelAdapter:
     def match(self, model_path: str):
         return True
 
-    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict, tokenizer_path: str = None):
+        if tokenizer_path is None:
+            tokenizer_path = model_path
+        
         revision = from_pretrained_kwargs.get("revision", "main")
         try:
             tokenizer = AutoTokenizer.from_pretrained(
-                model_path,
+                tokenizer_path,
                 use_fast=self.use_fast_tokenizer,
                 revision=revision,
                 trust_remote_code=True,
             )
         except TypeError:
             tokenizer = AutoTokenizer.from_pretrained(
-                model_path, use_fast=False, revision=revision, trust_remote_code=True
+                tokenizer_path, use_fast=False, revision=revision, trust_remote_code=True
             )
         try:
             model = AutoModelForCausalLM.from_pretrained(
@@ -1522,7 +1525,9 @@ class MistralAdapter(BaseModelAdapter):
         return "mistral" in model_path.lower() or "mixtral" in model_path.lower()
 
     def load_model(self, model_path: str, from_pretrained_kwargs: dict):
-        model, tokenizer = super().load_model(model_path, from_pretrained_kwargs)
+        print('WARNING: Overriding mistral tokenizer with original mistralai/Mistral-7B-Instruct-v0.1')
+        tokenizer_path = 'mistralai/Mistral-7B-Instruct-v0.1'
+        model, tokenizer = super().load_model(model_path, from_pretrained_kwargs, tokenizer_path)
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
         return model, tokenizer
