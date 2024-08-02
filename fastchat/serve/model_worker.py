@@ -89,6 +89,7 @@ class ModelWorker(BaseModelWorker):
             xft_config=xft_config,
             debug=debug,
         )
+        assert len(self.tokenizer) == self.model.config.vocab_size, 'Tokenizer length and model vocab size are not equal!'
         self.device = device
         if self.tokenizer.pad_token == None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
