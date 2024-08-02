@@ -91,12 +91,7 @@ class BaseModelAdapter:
     def match(self, model_path: str):
         return True
 
-    def load_model(self, model_path: str, from_pretrained_kwargs: dict, tokenizer_path: str = None):
-        # for cases when you want to use a different tokenizer path than model path
-        # specifically, for custom mistral models that we need to override the saved tokenizer with original
-        if tokenizer_path is None:
-            tokenizer_path = model_path
-
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
         revision = from_pretrained_kwargs.get("revision", "main")
         try:
             tokenizer = AutoTokenizer.from_pretrained(
@@ -1527,13 +1522,9 @@ class MistralAdapter(BaseModelAdapter):
         return "mistral" in model_path.lower() or "mixtral" in model_path.lower()
 
     def load_model(self, model_path: str, from_pretrained_kwargs: dict):
-        print('Overriding tokenizer path of mistral model with mistralai/Mistral-7B-Instruct-v0.1')
-        model, tokenizer = super().load_model(model_path, from_pretrained_kwargs, tokenizer_path='mistralai/Mistral-7B-Instruct-v0.1')
+        model, tokenizer = super().load_model(model_path, from_pretrained_kwargs)
         model.config.eos_token_id = tokenizer.eos_token_id
-        if tokenizer.pad_token_id is not None:
-            model.config.pad_token_id = tokenizer.pad_token_id
-        else:
-            model.config.pad_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
         return model, tokenizer
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
