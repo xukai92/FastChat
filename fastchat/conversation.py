@@ -1831,6 +1831,18 @@ register_conv_template(
     )
 )
 
+register_conv_template(
+    Conversation(
+        name="rh8b",
+        system_template="<|system|>\n{system_message}",
+        system_message="""I am, Red Hat® Instruct Model based on Granite 8B, an AI language model developed by Red Hat and IBM Research, based on the Granite-8b-base language model. My primary function is to be a chat assistant.""",
+        roles=("<|user|>", "<|assistant|>"),
+        sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
+        sep="\n",
+        stop_str="<|endoftext|>",
+    )
+)
+
 
 register_conv_template(
     Conversation(
