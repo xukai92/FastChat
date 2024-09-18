@@ -2467,6 +2467,22 @@ class GraniteRhelAIAdapter(BaseModelAdapter):
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("rhel-ai")
 
+class GraniteRH8bAdapter(BaseModelAdapter):
+    """The model adapter for instructlab/granite-8b-lab"""
+
+    def match(self, model_path: str):
+        print("Loading RHEL AI 8b adapter")
+        return "rh8b" in model_path.lower() or \
+            "gr8b" in model_path.lower() or \
+            "lab8b" in model_path.lower()
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        import ibm_models
+        return super().load_model(model_path, from_pretrained_kwargs)
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("rh8b")
+
 class GraniteEmptyAdapter(BaseModelAdapter):
     """The model adapter for instructlab/granite-7b-lab"""
 
@@ -2643,6 +2659,7 @@ register_model_adapter(LabradorAdapter)
 register_model_adapter(CodeLabAdapter)
 register_model_adapter(GraniteRhelAIAdapter)
 register_model_adapter(GraniteEmptyAdapter)
+register_model_adapter(GraniteRH8bAdapter)
 
 # After all adapters, try the default base adapter.
 register_model_adapter(BaseModelAdapter)
